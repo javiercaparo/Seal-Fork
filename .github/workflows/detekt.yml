@@ -43,38 +43,13 @@ jobs:
       - uses: actions/checkout@v4
 
       # Gets the download URL associated with the $DETEKT_RELEASE_TAG
-      - name: Get Detekt download URL
-        id: detekt_info
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          DETEKT_DOWNLOAD_URL=$( gh api graphql --field tagName=$DETEKT_RELEASE_TAG --raw-field query='
-            query getReleaseAssetDownloadUrl($tagName: String!) {
-              repository(name: "detekt", owner: "detekt") {
-                release(tagName: $tagName) {
-                  releaseAssets(name: "detekt", first: 1) {
-                    nodes {
-                      downloadUrl
-                    }
-                  }
-                }
-              }
-            }
-          ' | \
-          jq --raw-output '.data.repository.release.releaseAssets.nodes[0].downloadUrl' )
-          echo "::set-output name=download_url::$DETEKT_DOWNLOAD_URL"
+      - name: Setup detekt
+        uses: peter-murray/setup-detekt@v2
+        with:
+          detekt_version: 1.23
 
-      # Sets up the detekt cli
-      - name: Setup Detekt
-        run: |
-          dest=$( mktemp -d )
-          curl --request GET \
-            --url ${{ steps.detekt_info.outputs.download_url }} \
-            --silent \
-            --location \
-            --output $dest/detekt
-          chmod a+x $dest/detekt
-          echo $dest >> $GITHUB_PATH
+      - name: check detekt version
+        run: detekt-cli --version
 
       # Performs static analysis using Detekt
       - name: Run Detekt
